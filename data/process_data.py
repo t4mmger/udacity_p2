@@ -6,7 +6,7 @@ def load_data(messages_filepath, categories_filepath):
 
     """
     load_data does: 
-    - loading the data
+    - loading the data,
     - joining messages and categories, 
     - splitting categories, so each category is in one column,
     - extracting column names and changing the values into dummies,
@@ -16,7 +16,7 @@ def load_data(messages_filepath, categories_filepath):
     df = pd.merge(messages, categories, how = 'inner', on = 'id')
     categories36 = categories['categories'].str.split(pat = ';', expand = True)
     row = categories36.iloc[0]
-    category_colnames = row.apply(lambda x: x[:-2])
+    category_colnames = 'cat_' + row.apply(lambda x: x[:-2])
     categories36.columns = category_colnames
 
     for column in categories36:
@@ -36,8 +36,17 @@ def clean_data(df):
     """
     clean_data does: 
      - removing duplicates caused by non-unique id column.
+     - removing numeric columns that have no variety (e.g. all values are 0).
+     - removing rows that have NA in response columns. 
     """
     df.drop_duplicates(inplace = True)
+
+    for column in df.select_dtypes(['number']).columns :
+        if df[column].max() == df[column].min():
+            df.drop(column, axis=1, inplace = True) 
+            print('column', column, 'dropped because no variety in data')
+
+    df.dropna(inplace=True, subset = df.filter(regex='^cat_').columns) 
 
     return df
 
@@ -50,7 +59,7 @@ def save_data(df, database_filename):
     location = 'sqlite:///{}'.format(database_filename)
     #I got the idea for location from https://stackoverflow.com/questions/3247183/variable-table-name-in-sqlite
     engine = create_engine(location)
-    df.to_sql(database_filename, engine, index=False)
+    df.to_sql('DisasterResponse', engine, if_exists = 'replace', index=False)
     pass  
 
 def main():
