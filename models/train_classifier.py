@@ -30,12 +30,10 @@ def load_data(database_filepath):
 
     location = 'sqlite:///{}'.format(database_filepath)
     engine = create_engine(location)
-    #engine.table_names()
     Inspector = inspect(engine)
     Inspector.get_table_names()
 
     df = pd.read_sql_table('DisasterResponse', engine)
-    #X = df[['message','genre']]
     X = df['message']
     y = df.filter(regex='^cat_').values
     category_names = df.filter(regex='^cat_').columns
@@ -66,6 +64,7 @@ def build_model():
     """
     build_model does: 
     - Create a model with a pipeline to make predictions,
+    - Using class weights in the estimator to account for inbalances in classes, 
     - Using grid search to find the best parameters,
     - max-iter was increased from 100 (default) to 200 to get better convergence.
     """
@@ -76,11 +75,16 @@ def build_model():
                     ('tfidf', TfidfTransformer())
                 ])),
 
-                ('clf', MultiOutputClassifier(LogisticRegression(C=1, penalty='l1', solver='liblinear', max_iter = 200)))
+                ('clf', MultiOutputClassifier(LogisticRegression(C=1, 
+                                                    penalty='l1', 
+                                                    solver='liblinear', 
+                                                    class_weight='balanced', 
+                                                    max_iter = 200
+                )))
                 ])
 
     parameters = {'clf__estimator__penalty': ['l1', 'l2']}
-    cv = GridSearchCV(pipeline, param_grid=parameters)
+    cv = GridSearchCV(pipeline, param_grid=parameters, verbose = 3)
     model = cv
     return model
 
