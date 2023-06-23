@@ -36,15 +36,21 @@ def clean_data(df):
     """
     clean_data does: 
      - removing duplicates caused by non-unique id column.
-     - removing numeric columns that have no variety (e.g. all values are 0).
+     - removing rows that have values > 1 in responsce columns,
+     - removing response columns that have no variety (e.g. all values are 0).
      - removing rows that have NA in response columns. 
     """
     df.drop_duplicates(inplace = True)
 
-    for column in df.select_dtypes(['number']).columns :
+    for column in df.filter(regex='^cat_').columns:
+        if df[column].max() > 1:
+            print(df[column].value_counts())
+            print('records > 1 will be deleted.')
+            df.drop(df[df[column] > 1].index, inplace=True)
+
         if df[column].max() == df[column].min():
             df.drop(column, axis=1, inplace = True) 
-            print('column', column, 'dropped because no variety in data')
+            print('column', column, 'dropped because no variety in data.')
 
     df.dropna(inplace=True, subset = df.filter(regex='^cat_').columns) 
 
